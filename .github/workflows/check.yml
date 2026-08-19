@@ -1,0 +1,21 @@
+name: Check manifest
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Weekly, because the failure this catches is external: a release asset
+    # withdrawn upstream leaves a manifest that installs nothing.
+    - cron: "0 7 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: ./bin/check.sh

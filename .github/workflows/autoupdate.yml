@@ -1,0 +1,41 @@
+name: Track engine releases
+
+on:
+  schedule:
+    # Daily. A package manager may lag a release by hours; it may not lag it
+    # by seven minors, which is what happened while nothing ran at all.
+    - cron: "0 6 * * *"
+  # The engine's release workflow can fire this for an immediate bump.
+  repository_dispatch:
+    types: [engine-released]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: autoupdate
+  cancel-in-progress: false
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: update
+        run: ./bin/update.sh
+
+      - name: Verify what was written
+        if: steps.update.outputs.updated == 'true'
+        run: ./bin/check.sh
+
+      - name: Commit
+        if: steps.update.outputs.updated == 'true'
+        env:
+          VERSION: ${{ steps.update.outputs.version }}
+        run: |
+          git config user.name "sebss"
+          git config user.email "sebssgarcia502580@gmail.com"
+          git commit -am "templetry: v$VERSION"
+          git push
