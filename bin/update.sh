@@ -10,7 +10,12 @@ set -euo pipefail
 manifest="bucket/templetry.json"
 repo="Templetry/engine"
 
-tag=$(curl -fsSL "https://api.github.com/repos/$repo/releases/latest" | jq -r .tag_name)
+# Unauthenticated calls share one rate limit per runner IP, so the daily job can get a
+# 403 (curl exit 22; it failed that way on 2026-11-09). Use the token when the workflow
+# provides one, like the homebrew tap does.
+auth=()
+[ -n "${GITHUB_TOKEN-}" ] && auth=(-H "Authorization: Bearer $GITHUB_TOKEN")
+tag=$(curl -fsSL "${auth[@]}" "https://api.github.com/repos/$repo/releases/latest" | jq -r .tag_name)
 [ -n "$tag" ] && [ "$tag" != "null" ] || { echo "::error::no latest release for $repo"; exit 1; }
 version="${tag#v}"
 
